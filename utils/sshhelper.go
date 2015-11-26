@@ -1,26 +1,14 @@
 package utils
 
 import (
-	"bufio"
 	"bytes"
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net"
-	"os"
-	"os/signal"
-	"regexp"
-	"strings"
-	"syscall"
-
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
-func SSHConnectTmp(username string, hostname string, keyPath string) string {
+func SSHConnect(username string, hostname string, keyPath string) string {
 	keyBytes, err := ioutil.ReadFile(keyPath)
 	if err != nil {
 		log.Fatal(err)
@@ -52,11 +40,6 @@ func SSHConnectTmp(username string, hostname string, keyPath string) string {
 	}
 	//log.Printf(">%s", stdoutBuf)
 	return stdoutBuf.String()
-}
-
-func CleanHostname(hostname string) string {
-	match := regexp.MustCompile(`\<?(?:http\:\/\/)?([\w\.\-\_]+)\|?`)
-	return match.FindStringSubmatch(hostname)[1]
 }
 
 func RunCommand(client *ssh.Client, command string) (stdout string, err error) {

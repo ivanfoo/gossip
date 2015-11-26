@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ivanfoo/rtop-bot/bot"
+	"github.com/ivanfoo/gossip/bot"
 )
 
 const (

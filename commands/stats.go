@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ivanfoo/rtop-bot/utils"
+	"github.com/ivanfoo/gossip/utils"
 	"golang.org/x/crypto/ssh"
 )
 

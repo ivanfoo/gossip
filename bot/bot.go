@@ -6,7 +6,7 @@ import (
 	"os/user"
 	"strings"
 
-	_ "github.com/ivanfoo/rtop-bot/utils"
+	"github.com/ivanfoo/gossip/utils"
 	"github.com/nlopes/slack"
 )
 
@@ -17,9 +17,9 @@ type BotOptions struct {
 }
 
 type Bot struct {
-	botOptions BotOptions
+	botOptions  BotOptions
 	SlackUserID string
-	SystemUser *user.User
+	SystemUser  *user.User
 }
 
 func NewBot(opts BotOptions) *Bot {
@@ -55,14 +55,15 @@ func (b *Bot) DoSlack() {
 				log.Println("Connection counter:", ev.ConnectionCount)
 
 			case *slack.MessageEvent:
+				log.Println(ev.Msg.Text)
 				if b.botBeingAsked(ev.Msg.Text) {
-					rtm.SendMessage(rtm.NewOutgoingMessage("Hello world", ev.Msg.Channel))	
+					rtm.SendMessage(rtm.NewOutgoingMessage(b.buildResponse(ev.Msg.Text), ev.Msg.Channel))
 				}
 
 			case *slack.InvalidAuthEvent:
 				log.Printf("Invalid credentials")
 				os.Exit(1)
-			}	
+			}
 		}
 	}
 }
@@ -72,3 +73,9 @@ func (b *Bot) botBeingAsked(slackMessage string) bool {
 	return strings.HasPrefix(slackMessage, botMention)
 }
 
+func (b *Bot) buildResponse(slackMessage string) string {
+	stuff := strings.Fields(slackMessage)
+	//command := bot.NewCommand(stuff[1], stuff[2])
+	target := utils.CleanHostname(stuff[2])
+	return utils.SSHConnect(b.SystemUser.Username, target, b.botOptions.SSHKeyPath)
+}
