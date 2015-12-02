@@ -6,6 +6,7 @@ import (
 	"os/user"
 	"strings"
 
+	"github.com/ivanfoo/gossip/commands"
 	"github.com/ivanfoo/gossip/utils"
 	"github.com/nlopes/slack"
 )
@@ -57,7 +58,8 @@ func (b *Bot) DoSlack() {
 			case *slack.MessageEvent:
 				log.Println(ev.Msg.Text)
 				if b.botBeingAsked(ev.Msg.Text) {
-					rtm.SendMessage(rtm.NewOutgoingMessage(b.buildResponse(ev.Msg.Text), ev.Msg.Channel))
+					response := b.runCommand(b.parseMessage(ev.Msg.Text))
+					rtm.SendMessage(rtm.NewOutgoingMessage(response, ev.Msg.Channel))
 				}
 
 			case *slack.InvalidAuthEvent:
@@ -73,9 +75,16 @@ func (b *Bot) botBeingAsked(slackMessage string) bool {
 	return strings.HasPrefix(slackMessage, botMention)
 }
 
-func (b *Bot) buildResponse(slackMessage string) string {
-	stuff := strings.Fields(slackMessage)
-	//command := bot.NewCommand(stuff[1], stuff[2])
-	target := utils.CleanHostname(stuff[2])
-	return utils.SSHConnect(b.SystemUser.Username, target, b.botOptions.SSHKeyPath)
+func (b *Bot) parseMessage(slackMessage string) (action string, target string) {
+	parts := strings.Fields(slackMessage)
+	parts[2] = utils.CleanHostname(parts[2])
+	return parts[1], parts[2] 
+}
+
+func (b *Bot) runCommand(action string, target string) string {
+	sshClient := utils.SSHConnect(b.SystemUser.Username, target, b.botOptions.SSHKeyPath)
+	defer sshClient.Close()
+	c := commands.NewCommand(sshClient)
+	output := c.Run()
+	return output
 }

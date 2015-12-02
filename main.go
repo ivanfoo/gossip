@@ -16,7 +16,7 @@ func usage() {
 	fmt.Printf(	
 		`	
 Usage:
-    rtop-bot -s slackBotToken [-u user] [-i identity_file]
+    gossip -s slackBotToken [-u user] [-i identity_file]
 
 where:
     -s slackBotToken is the API token for the Slack bot

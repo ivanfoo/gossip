@@ -6,9 +6,9 @@ import (
 	"io/ioutil"
 	"log"
 	"golang.org/x/crypto/ssh"
-)
+)	
 
-func SSHConnect(username string, hostname string, keyPath string) string {
+func SSHConnect(username string, hostname string, keyPath string) *ssh.Client {
 	keyBytes, err := ioutil.ReadFile(keyPath)
 	if err != nil {
 		log.Fatal(err)
@@ -17,7 +17,7 @@ func SSHConnect(username string, hostname string, keyPath string) string {
 	if err != nil {
 		log.Fatalf("parse key failed:%v", err)
 	}
-	config := &ssh.ClientConfig{
+	config := &ssh.ClientConfig {
 		User: username,
 		Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)},
 	}
@@ -26,27 +26,15 @@ func SSHConnect(username string, hostname string, keyPath string) string {
 	if err != nil {
 		log.Fatalf("dial failed:%v", err)
 	}
-	defer conn.Close()
-	session, err := conn.NewSession()
-	if err != nil {
-		log.Fatalf("session failed:%v", err)
-	}
-	defer session.Close()
-	var stdoutBuf bytes.Buffer
-	session.Stdout = &stdoutBuf
-	err = session.Run("ls -l")
-	if err != nil {
-		log.Fatalf("Run failed:%v", err)
-	}
-	//log.Printf(">%s", stdoutBuf)
-	return stdoutBuf.String()
+
+	return conn
 }
 
-func RunCommand(client *ssh.Client, command string) (stdout string, err error) {
+func RunCommand(client *ssh.Client, command string) (string, error) {
 	session, err := client.NewSession()
 	if err != nil {
-		//log.Print(err)
-		return
+		log.Print(err)
+		
 	}
 	defer session.Close()
 
@@ -54,10 +42,10 @@ func RunCommand(client *ssh.Client, command string) (stdout string, err error) {
 	session.Stdout = &buf
 	err = session.Run(command)
 	if err != nil {
-		//log.Print(err)
-		return
+		log.Print(err)
 	}
-	stdout = string(buf.Bytes())
 
-	return
+	stdout := string(buf.Bytes())
+
+	return stdout, err
 }
