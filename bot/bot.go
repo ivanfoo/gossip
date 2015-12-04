@@ -1,14 +1,11 @@
 package bot
 
 import (
-	"log"
-	"os"
 	"os/user"
 	"strings"
 
-	"github.com/ivanfoo/gossip/commands"
+	"github.com/ivanfoo/gossip/monitors"
 	"github.com/ivanfoo/gossip/utils"
-	"github.com/nlopes/slack"
 )
 
 type BotOptions struct {
@@ -34,43 +31,17 @@ func NewBot(opts BotOptions) *Bot {
 	}
 
 	if opts.SSHKeyPath == "" {
-		b.botOptions.SSHKeyPath = b.SystemUser.HomeDir
+		b.botOptions.SSHKeyPath = b.SystemUser.HomeDir + ".ssh/" + "id_rsa" 
 	}
 
 	return b
 }
 
-func (b *Bot) DoSlack() {
-	api := slack.New(b.botOptions.SlackToken)
-	rtm := api.NewRTM()
-	go rtm.ManageConnection()
-
-	for {
-		select {
-		case msg := <-rtm.IncomingEvents:
-			switch ev := msg.Data.(type) {
-
-			case *slack.ConnectedEvent:
-				b.SlackUserID = ev.Info.User.ID
-				log.Println("Infos:", ev.Info)
-				log.Println("Connection counter:", ev.ConnectionCount)
-
-			case *slack.MessageEvent:
-				log.Println(ev.Msg.Text)
-				if b.botBeingAsked(ev.Msg.Text) {
-					response := b.runCommand(b.parseMessage(ev.Msg.Text))
-					rtm.SendMessage(rtm.NewOutgoingMessage(response, ev.Msg.Channel))
-				}
-
-			case *slack.InvalidAuthEvent:
-				log.Printf("Invalid credentials")
-				os.Exit(1)
-			}
-		}
-	}
+func (b *Bot) Run() {
+	doSlack(b)
 }
 
-func (b *Bot) botBeingAsked(slackMessage string) bool {
+func (b *Bot) botMentioned(slackMessage string) bool {
 	botMention := "<@" + b.SlackUserID
 	return strings.HasPrefix(slackMessage, botMention)
 }
@@ -81,10 +52,10 @@ func (b *Bot) parseMessage(slackMessage string) (action string, target string) {
 	return parts[1], parts[2] 
 }
 
-func (b *Bot) runCommand(action string, target string) string {
+func (b *Bot) runMonitor(action string, target string) string {
 	sshClient := utils.SSHConnect(b.SystemUser.Username, target, b.botOptions.SSHKeyPath)
 	defer sshClient.Close()
-	c := commands.NewCommand(sshClient)
-	output := c.Run()
+	m := monitors.NewStatsMonitor(sshClient)
+	output := m.Run()
 	return output
 }
