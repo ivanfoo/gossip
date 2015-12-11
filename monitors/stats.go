@@ -65,3 +65,23 @@ func (s *Stats) Run() string {
 	output, _ := s.getUptime()
 	return output
 }
+
+func RunUptimeMonitor (client *ssh.Client) string {
+	uptime, err := utils.RunCommand(client, "/bin/cat /proc/uptime")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	result := ""
+	parts := strings.Fields(uptime)
+	if len(parts) == 2 {
+		var upsecs float64
+		upsecs, err = strconv.ParseFloat(parts[0], 64)
+		if err != nil {
+			log.Fatal(err)
+		}
+		result = time.Duration(upsecs * 1e9).String()
+	}
+
+	return result	
+}

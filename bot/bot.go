@@ -1,11 +1,15 @@
 package bot
 
 import (
+	"fmt"
+	"log"
 	"os/user"
 	"strings"
 
 	"github.com/ivanfoo/gossip/monitors"
 	"github.com/ivanfoo/gossip/utils"
+
+	"golang.org/x/crypto/ssh"
 )
 
 type BotOptions struct {
@@ -31,14 +35,30 @@ func NewBot(opts BotOptions) *Bot {
 	}
 
 	if opts.SSHKeyPath == "" {
-		b.botOptions.SSHKeyPath = b.SystemUser.HomeDir + ".ssh/" + "id_rsa" 
+		b.botOptions.SSHKeyPath = b.SystemUser.HomeDir + "/.ssh/" + "id_rsa" 
 	}
 
 	return b
 }
 
-func (b *Bot) Run() {
-	doSlack(b)
+func (b *Bot) Chat() {
+    ws, id := utils.SlackConnect(b.botOptions.SlackToken)
+    fmt.Println("bot ready, ^C exits")
+
+    for {
+        m, err := utils.GetMessage(ws)
+        if err != nil {
+            log.Fatal(err)
+        }
+
+        if m.Type == "message" && strings.HasPrefix(m.Text, "<@" + id) {
+	        go func(m utils.Message) {
+	        	action, target := b.parseMessage(m.Text)
+	            	m.Text = b.runMonitor(action, target)
+	            	utils.PostMessage(ws, m)
+	        }(m)
+        }
+    }
 }
 
 func (b *Bot) botMentioned(slackMessage string) bool {
@@ -55,7 +75,12 @@ func (b *Bot) parseMessage(slackMessage string) (action string, target string) {
 func (b *Bot) runMonitor(action string, target string) string {
 	sshClient := utils.SSHConnect(b.SystemUser.Username, target, b.botOptions.SSHKeyPath)
 	defer sshClient.Close()
-	m := monitors.NewStatsMonitor(sshClient)
-	output := m.Run()
-	return output
+
+	var actions = map[string]func(client *ssh.Client) string {
+	"containers": monitors.RunContainersMonitor,
+	"uptime": monitors.RunUptimeMonitor,
+	}
+
+	return (actions[action](sshClient))
+	//fmt.Println(fn())
 }

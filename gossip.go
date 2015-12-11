@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	VERSION = "0.1"
+	VERSION = "1.0.0"
 )
 
 func usage() {
@@ -27,7 +27,7 @@ where:
 }
 
 func main() {
-	var SlackToken = flag.String("s", "", "create Slack bot")
+	var SlackToken = flag.String("s", "", "slack bot token")
 	var Username = flag.String("u", "", "ssh user to use")
 	var SSHKeyPath = flag.String("i", "", "private key to use")
 
@@ -43,5 +43,5 @@ func main() {
 		SlackToken: *SlackToken,
 	})
 
-	bot.Run()
+	bot.Chat()
 }
